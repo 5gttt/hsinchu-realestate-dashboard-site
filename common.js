@@ -40,6 +40,12 @@ async function getJSON(url, opts) {
   return j;
 }
 
+// 非住宅（廠辦／辦公）：售價結構與住宅不同，住宅統計預設排除（與 report_helpers.non_residential_mask 同規則）
+function isNonResidential(r) {
+  const t = String(r['建物型態'] || ''), u = String(r['主要用途'] || ''), n = String(r['建案名稱'] || '');
+  return t === '辦公商業大樓' || (t === '其他' && u === '見其他登記事項') || /廠辦|辦公|商辦/.test(n);
+}
+
 function opt(el, arr) {
   el.innerHTML = arr.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('');
 }

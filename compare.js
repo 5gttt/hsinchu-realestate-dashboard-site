@@ -88,7 +88,7 @@ function normalize(r) {
     m: r['月份'] || '', r: r['鄉鎮市區'] || '', pj: r['建案名稱'] || '',
     p: (Number(r['建物單價']) || 0) / 10000, tot: (Number(r['總價']) || 0) / 10000, ping: Number(r['建物坪數']) || 0,
     rooms: roomIndex(r['房型']),
-    ok: !(note.includes('特殊關係') || note.includes('親友')) && !zhFloor1(r['移轉層次']) && !String(r['解約情形'] || '').trim(),
+    ok: !(note.includes('特殊關係') || note.includes('親友')) && !zhFloor1(r['移轉層次']) && !String(r['解約情形'] || '').trim() && !isNonResidential(r),
   };
 }
 

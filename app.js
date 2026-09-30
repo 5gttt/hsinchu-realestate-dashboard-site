@@ -8,7 +8,7 @@ const CONCENTRATION_RATIO = 30;   // 單一建案佔當月成交超過此 % → 
 const CONCENTRATION_MIN = 10;     // 當月成交少於此筆數不判斷，避免小樣本誤報
 const EXPAND_FIELDS = ['建物型態', '土地位置建物門牌', '棟及號', '主要用途', '車位類別', '車位坪數', '車位總價元', '備註'];
 
-const S = { year: 'all', region: 'all', month: 'all', type: 'all', period: 'all', exSp: true, exG: true, sort: 'k', dir: -1, page: 0, q: '' };
+const S = { year: 'all', region: 'all', month: 'all', type: 'all', period: 'all', exSp: true, exG: true, exNR: true, sort: 'k', dir: -1, page: 0, q: '' };
 let DATA = [], MONTHS = [], CITIES = [], CUR = [], CONC = [], BROKEN = [];
 const BROKEN_NAME = /[?？\ufffd]/;   // 政府原始檔罕見字被轉成問號
 const OPEN = new Set();   // 明細表已展開的列
@@ -57,6 +57,7 @@ function normalize(r) {
     sp: note.includes('特殊關係') || note.includes('親友'),
     cx: String(r['解約情形'] || '').trim() !== '',
     addr: r['土地位置建物門牌'] || '',
+    nr: isNonResidential(r),
     q: null,
   };
 }
@@ -82,7 +83,8 @@ function baseRows() {
     (!cities.length || cities.includes(x.r)) &&
     (S.type === 'all' || x.type === S.type) &&
     !(S.exSp && x.sp) &&
-    !(S.exG && x.fl === 1));
+    !(S.exG && x.fl === 1) &&
+    !(S.exNR && x.nr));
 }
 const inMonths = (rows, ms) => { const k = new Set(ms); return rows.filter(x => k.has(x.m)); };
 
@@ -381,10 +383,11 @@ $('fPeriod').addEventListener('click', e => {
 });
 $('fSpecial').addEventListener('change', e => { S.exSp = e.target.checked; render(); });
 $('fG').addEventListener('change', e => { S.exG = e.target.checked; render(); });
+$('fNR').addEventListener('change', e => { S.exNR = e.target.checked; render(); });
 $('reset').onclick = () => {
-  Object.assign(S, { year: 'all', region: 'all', month: 'all', type: 'all', period: 'all', exSp: true, exG: true, page: 0 });
+  Object.assign(S, { year: 'all', region: 'all', month: 'all', type: 'all', period: 'all', exSp: true, exG: true, exNR: true, page: 0 });
   ['fYear', 'fRegion', 'fMonth', 'fType'].forEach(i => { $(i).value = 'all'; });
-  $('fSpecial').checked = $('fG').checked = true;
+  $('fSpecial').checked = $('fG').checked = $('fNR').checked = true;
   [...$('fPeriod').children].forEach(x => x.classList.toggle('on', x.dataset.v === 'all'));
   render();
 };
