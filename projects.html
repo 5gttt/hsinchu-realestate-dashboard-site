@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>建案熱力看板 - 大新竹實登儀表板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="projects.css">
+</head>
+<body>
+<header class="top">
+  <div class="bar1">
+    <div class="brand"><i></i>大新竹實登儀表板</div>
+    <nav class="nav">
+      <a href="./">主儀表板</a>
+      <a class="on" href="projects.html">建案熱力看板</a>
+      <a href="compare.html">比較分析</a>
+    </nav>
+    <div class="sp"></div>
+    <span class="meta" id="stamp">連線資料來源…</span>
+    <button class="btn" id="refresh"><span>↻</span>資料刷新</button>
+  </div>
+  <div class="filters">
+    <div class="sel"><label for="fYear">年度</label><select id="fYear"></select></div>
+    <div class="sel"><label for="fRegion">區域</label><select id="fRegion"></select></div>
+    <div class="sel"><label for="fMonth">月份</label><select id="fMonth"></select></div>
+    <div class="div"></div>
+    <div class="seg" id="fPeriod">
+      <button data-v="3">近3月</button>
+      <button data-v="6">近6月</button>
+      <button data-v="ytd">今年</button>
+      <button data-v="all" class="on">全部</button>
+    </div>
+    <div class="sp"></div>
+    <label class="search"><i></i><input id="q" placeholder="建案搜尋…" autocomplete="off"></label>
+  </div>
+</header>
+
+<div class="wrap">
+  <section>
+    <div class="sec-h">
+      <h2>建案成交量熱力看板</h2>
+      <span id="scope"></span>
+      <div class="sp"></div>
+      <div class="legend">面積＝成交筆數　顏色＝平均單價<span id="lgLo"></span><div class="g"></div><span id="lgHi"></span></div>
+    </div>
+    <div class="card tm" id="tm"><div class="empty">資料載入中…</div></div>
+    <div class="note" id="tmNote"></div>
+  </section>
+
+  <section id="detail"></section>
+
+  <section>
+    <div class="sec-h">
+      <h2>坪數區間比較</h2>
+      <span>同坪數帶建案的去化速度排行（套用上方篩選）</span>
+    </div>
+    <div class="card">
+      <form class="ac-form" id="acForm">
+        <label>最小坪數<input type="number" id="acMin" min="0" step="0.5" placeholder="25"></label>
+        <span class="dash">～</span>
+        <label>最大坪數<input type="number" id="acMax" min="0" step="0.5" placeholder="30"></label>
+        <button class="btn" type="submit">查詢</button>
+        <span class="hint">輸入你規劃的坪數範圍，看市場上同坪數帶的建案賣得快不快。點列可在上方查看建案明細。</span>
+      </form>
+      <div id="acOut"></div>
+    </div>
+  </section>
+</div>
+
+<div id="tip"></div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="projects.js"></script>
+</body>
+</html>

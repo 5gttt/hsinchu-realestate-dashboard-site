@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>比較分析 - 大新竹實登儀表板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="compare.css">
+</head>
+<body>
+<header class="top">
+  <div class="bar1">
+    <div class="brand"><i></i>大新竹實登儀表板</div>
+    <nav class="nav">
+      <a href="./">主儀表板</a>
+      <a href="projects.html">建案熱力看板</a>
+      <a class="on" href="compare.html">比較分析</a>
+    </nav>
+    <div class="sp"></div>
+    <span class="meta" id="stamp">連線資料來源…</span>
+  </div>
+  <div class="filters tabs" id="tabs">
+    <button data-tab="region" class="on">區域比較</button>
+    <button data-tab="project">建案比較</button>
+    <button data-tab="pace">去化速度排行</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- 區域比較 -->
+  <section class="tab" id="tab-region">
+    <div class="sec-h"><h2>區域比較</h2><span>最多 4 區並排 · 已排除特殊交易、一樓、解約</span></div>
+    <div class="ctl">
+      <div class="chips-pick" id="regionPick"></div>
+      <div class="sp"></div>
+      <div class="seg" id="regionPeriod">
+        <button data-v="12" class="on">近12月</button>
+        <button data-v="24">近24月</button>
+        <button data-v="all">全部</button>
+      </div>
+    </div>
+    <div class="card"><div class="tbl-scroll"><table class="cmp" id="regionTable"></table></div></div>
+    <div class="grid2">
+      <div class="card panel"><div class="ph"><h3>平均單價月趨勢</h3><small>萬元/坪</small></div><div class="chart" id="rgPrice"></div><div class="lgd" id="rgLegend1"></div></div>
+      <div class="card panel"><div class="ph"><h3>每月成交件數</h3><small>件</small></div><div class="chart" id="rgVol"></div><div class="lgd" id="rgLegend2"></div></div>
+      <div class="card panel"><div class="ph"><h3>房型結構</h3><small>佔比</small></div><div id="rgRoom"></div></div>
+      <div class="card panel"><div class="ph"><h3>總價帶分佈</h3><small>佔比</small></div><div id="rgBand"></div></div>
+    </div>
+  </section>
+
+  <!-- 建案比較 -->
+  <section class="tab" id="tab-project" hidden>
+    <div class="sec-h"><h2>建案比較</h2><span>最多 4 案並排 · 可從去化排行點建案加入</span></div>
+    <div class="ctl">
+      <div class="chips-pick" id="projPick"></div>
+      <label class="search"><i></i><input id="projInput" list="projList" placeholder="輸入建案名稱加入比較…" autocomplete="off"></label>
+      <datalist id="projList"></datalist>
+    </div>
+    <div class="card"><div class="tbl-scroll"><table class="cmp" id="projTable"></table></div></div>
+    <div class="grid2">
+      <div class="card panel"><div class="ph"><h3>銷售速度</h3><small>累計已售戶數佔總戶數</small></div><div class="chart" id="pjCurve"></div><div class="lgd" id="pjLegend1"></div></div>
+      <div class="card panel"><div class="ph"><h3>坪數分佈</h3><small>已售戶數</small></div><div id="pjArea"></div></div>
+    </div>
+  </section>
+
+  <!-- 去化速度排行 -->
+  <section class="tab" id="tab-pace" hidden>
+    <div class="sec-h"><h2>去化速度排行</h2><span id="paceAsOf"></span></div>
+    <div class="card explain">
+      <div><small>和建案看板「銷售速度」的差別</small>
+        <p>建案看板的銷售速度曲線是<strong>單一建案</strong>從首筆成交開始，逐日累計賣了幾成，看的是它「怎麼賣」。這裡則是把<strong>所有建案</strong>換算成同一把尺來排名：</p></div>
+      <div><small>每月去化 %</small><p>目前銷售率 ÷ 上市月數（首筆成交到資料截止日）。開賣半年賣六成＝每月 10%，可跨建案比較整體賣得快不快。</p></div>
+      <div><small>近 3 月去化戶</small><p>最近 91 天內新賣出的戶數，看「現在」還有沒有動能。老案可能每月去化 % 不高，但近期仍在熱賣。</p></div>
+    </div>
+    <div class="ctl">
+      <div class="sel"><label for="pcRegion">區域</label><select id="pcRegion"></select></div>
+      <div class="sel"><label for="pcYear">開賣年</label><select id="pcYear"></select></div>
+      <div class="sel"><label for="pcMin">總戶數</label><select id="pcMin">
+        <option value="0">不限</option><option value="20" selected>20 戶以上</option><option value="50">50 戶以上</option><option value="100">100 戶以上</option>
+      </select></div>
+      <div class="sel"><label for="pcSort">排序</label><select id="pcSort">
+        <option value="pacePct">每月去化 %</option><option value="recent3">近 3 月去化戶</option><option value="soldPct">銷售率</option><option value="monthsTo50">50% 耗時（短→長）</option>
+      </select></div>
+      <label class="tg"><input type="checkbox" id="pcOnSale"><span></span>只看銷售中（未滿 95%）</label>
+      <div class="sp"></div>
+      <span class="meta" id="pcCount"></span>
+    </div>
+    <div class="card"><div class="tbl-scroll"><table class="rank-t" id="paceTable"></table></div></div>
+  </section>
+</div>
+
+<div id="tip"></div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="compare.js"></script>
+</body>
+</html>

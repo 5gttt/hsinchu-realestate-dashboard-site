@@ -1,0 +1,91 @@
+/* 共用樣式：主儀表板與建案熱力看板（2026-09-30 依 Claude Design 改版） */
+:root {
+  --bg: oklch(0.985 0.002 250);
+  --card: #fff;
+  --ink: oklch(0.2 0.005 250);
+  --ink2: oklch(0.45 0.006 250);
+  --ink3: oklch(0.6 0.006 250);
+  --line: oklch(0.91 0.004 250);
+  --line2: oklch(0.955 0.003 250);
+  --acc: oklch(0.55 0.17 255);
+  --acc-bg: oklch(0.95 0.03 255);
+  --hi: oklch(0.55 0.17 25);
+  --lo: oklch(0.56 0.12 145);
+  --warn: oklch(0.62 0.14 70);
+  --sans: "Noto Sans TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+a { color: var(--acc); text-decoration: none; }
+a:hover { color: var(--ink); text-decoration: underline; }
+button, select, input { font: inherit; color: inherit; }
+
+/* 頂部列 */
+.top { position: sticky; top: 0; z-index: 6; background: color-mix(in oklch, var(--bg) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.bar1 { display: flex; align-items: center; gap: 28px; padding: 0 40px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: .02em; white-space: nowrap; }
+.brand i { width: 10px; height: 10px; background: var(--acc); border-radius: 2px; }
+.nav { display: flex; gap: 4px; height: 100%; }
+.nav a { display: flex; align-items: center; padding: 0 12px; color: var(--ink2); font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.nav a:hover { color: var(--ink); text-decoration: none; }
+.nav a.on { color: var(--ink); border-color: var(--ink); font-weight: 500; }
+.bar1 .sp { flex: 1; }
+.meta { font-family: var(--mono); font-size: 11.5px; color: var(--ink3); white-space: nowrap; }
+.btn { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: 7px; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.btn:hover { background: oklch(0.32 0.005 250); }
+.btn:disabled { opacity: .6; cursor: default; }
+.btn.spin span { animation: sp .8s linear infinite; display: inline-block; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* 篩選列 */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 40px; border-top: 1px solid var(--line2); }
+.sel { position: relative; display: flex; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 7px; height: 32px; }
+.sel:hover { border-color: var(--ink3); }
+.sel label { font-size: 12px; color: var(--ink3); padding-left: 11px; white-space: nowrap; }
+.sel select { appearance: none; border: 0; background: transparent; padding: 0 28px 0 8px; height: 100%; font-weight: 500; cursor: pointer; outline: none; font-size: 13px; }
+.sel:after { content: ""; position: absolute; right: 11px; top: 12px; width: 5px; height: 5px; border-right: 1.5px solid var(--ink2); border-bottom: 1.5px solid var(--ink2); transform: rotate(45deg); pointer-events: none; }
+.div { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.seg { display: flex; gap: 2px; }
+.seg button { border: 1px solid transparent; background: transparent; height: 32px; padding: 0 12px; border-radius: 7px; cursor: pointer; color: var(--ink2); font-size: 13px; }
+.seg button:hover { color: var(--ink); }
+.seg button.on { border-color: var(--ink); color: var(--ink); font-weight: 500; }
+.filters .sp { flex: 1; }
+.search { display: flex; align-items: center; gap: 8px; height: 32px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; width: min(240px, 100%); background: var(--card); }
+.search:focus-within { border-color: var(--ink); }
+.search input { border: 0; outline: none; flex: 1; min-width: 0; background: transparent; font-size: 13px; }
+.search i { width: 10px; height: 10px; border: 1.5px solid var(--ink3); border-radius: 50%; }
+
+/* 版面 */
+.wrap { padding: 36px 40px 72px; display: flex; flex-direction: column; gap: 40px; max-width: 1520px; margin: 0 auto; }
+.sec-h { display: flex; align-items: baseline; gap: 14px; margin: 0 0 16px; flex-wrap: wrap; }
+.sec-h h2 { font-size: 18px; margin: 0; font-weight: 700; }
+.sec-h > span { font-family: var(--mono); font-size: 11.5px; color: var(--ink3); }
+.sec-h .sp { flex: 1; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.legend { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink2); }
+.legend .g { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg in srgb, var(--lo), color-mix(in srgb, var(--lo) 12%, #fff) 50%, color-mix(in srgb, var(--hi) 12%, #fff) 50%, var(--hi)); }
+.legend span { font-family: var(--mono); font-size: 11.5px; }
+.note { font-size: 12px; color: var(--ink3); margin-top: 8px; }
+
+/* 圖表面板 */
+.panel { padding: 18px 20px 16px; min-width: 0; }
+.ph { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.ph h3 { margin: 0; font-size: 14px; font-weight: 500; }
+.ph small { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+.chart svg { display: block; overflow: visible; }
+.ax { font-family: var(--mono); font-size: 10.5px; fill: var(--ink3); }
+.gl { stroke: var(--line2); }
+
+#tip { position: fixed; pointer-events: none; background: var(--ink); color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; z-index: 50; opacity: 0; transition: opacity .1s; line-height: 1.6; }
+#tip b { font-family: var(--mono); font-weight: 500; }
+.empty { display: grid; place-items: center; min-height: 200px; color: var(--ink3); font-size: 13px; text-align: center; padding: 20px; }
+
+@media (max-width: 1100px) { .bar1 .meta { display: none; } }
+@media (max-width: 760px) {
+  .bar1, .filters, .wrap { padding-left: 16px; padding-right: 16px; }
+  .top { position: static; }
+  .bar1 { gap: 14px; overflow-x: auto; scrollbar-width: none; }
+  .bar1::-webkit-scrollbar { display: none; }
+}

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>大新竹實登儀表板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header class="top">
+  <div class="bar1">
+    <div class="brand"><i></i>大新竹實登儀表板</div>
+    <nav class="nav">
+      <a class="on" href="./">主儀表板</a>
+      <a href="projects.html">建案熱力看板</a>
+      <a href="compare.html">比較分析</a>
+    </nav>
+    <div class="sp"></div>
+    <span class="meta" id="stamp">連線資料來源…</span>
+    <button class="btn" id="refresh"><span>↻</span>數據刷新</button>
+  </div>
+  <div class="filters">
+    <div class="sel"><label for="fYear">年度</label><select id="fYear"></select></div>
+    <div class="sel"><label for="fRegion">區域</label><select id="fRegion"></select></div>
+    <div class="sel"><label for="fMonth">月份</label><select id="fMonth"></select></div>
+    <div class="sel"><label for="fType">型態</label><select id="fType"></select></div>
+    <div class="div"></div>
+    <div class="seg" id="fPeriod">
+      <button data-v="3">近3月</button>
+      <button data-v="6">近6月</button>
+      <button data-v="ytd">今年</button>
+      <button data-v="all" class="on">全部</button>
+    </div>
+    <div class="sp"></div>
+    <label class="tg"><input type="checkbox" id="fSpecial" checked><span></span>排除特殊交易</label>
+    <label class="tg"><input type="checkbox" id="fG" checked><span></span>排除一樓</label>
+    <button class="reset" id="reset">重設</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section>
+    <div class="sec-h"><h2>市場脈動摘要</h2><span id="scope"></span></div>
+    <div class="kpis" id="kpis"><div class="empty" style="grid-column:1/-1">資料載入中…</div></div>
+    <div class="hl" id="hl"></div>
+    <div class="card insight" id="insight"></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><h2>多維度趨勢分析</h2><span>滑鼠移至圖表查看數值</span></div>
+    <div class="grid">
+      <div class="card panel c8"><div class="ph"><h3>每月成交件數</h3><small>件</small></div><div class="chart" id="chVol"></div></div>
+      <div class="card panel c4"><div class="ph"><h3>區域交易分佈</h3><small>件數 · 佔比</small></div><div class="hbar" id="chReg"></div></div>
+      <div class="card panel c6"><div class="ph"><h3>平均單價月趨勢</h3><small>萬元/坪</small></div><div class="chart" id="chPrice"></div></div>
+      <div class="card panel c6"><div class="ph"><h3>平均坪數月趨勢</h3><small>坪</small></div><div class="chart" id="chPing"></div></div>
+      <div class="card panel c7"><div class="ph"><h3>建物單價分佈</h3><small>萬元/坪 · 件數</small></div><div class="chart" id="chHist"></div></div>
+      <div class="card panel c5"><div class="ph"><h3>熱門建案排名 Top 8</h3><small>件數 · 均價</small></div><div class="rank" id="chTop"></div></div>
+      <div class="card panel c7"><div class="ph"><h3>各建物坪數的銷售狀況</h3><small>件數 · 總價中位數</small></div><div class="chart" id="chPingB"></div></div>
+      <div class="card panel c5"><div class="ph"><h3>各房型佔比與平均單價</h3><small>房型</small></div><div id="chRoom"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-h"><h2>資料明細表</h2><span>點擊欄位標題排序 · 點列展開更多欄位</span></div>
+    <div class="card">
+      <div class="tbl-top">
+        <label class="search"><i></i><input id="q" placeholder="快速搜尋建案、區域、地址…" autocomplete="off"></label>
+        <span class="meta" id="pgInfo"></span>
+      </div>
+      <div class="tbl-scroll">
+        <table class="dt">
+          <thead><tr>
+            <th class="s" data-k="k">成交日</th><th>區域</th><th>建案</th>
+            <th class="s r" data-k="tot">總價 (萬)</th><th class="s r" data-k="p">單價 (萬/坪)</th><th class="s r" data-k="ping">坪數</th>
+            <th class="r">樓層</th><th>房型</th><th>備註</th><th></th>
+          </tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+      <div class="pg"><div><button id="prev">上一頁</button><span id="pgNo"></span><button id="next">下一頁</button></div></div>
+    </div>
+  </section>
+</div>
+
+<div id="tip"></div>
+<div class="drawer-bg" id="dbg"></div>
+<aside class="drawer" id="drawer" aria-label="數據品質警示">
+  <header><h3>數據品質警示</h3><button class="x" id="dx" aria-label="關閉">×</button></header>
+  <div class="body" id="qaList"></div>
+</aside>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

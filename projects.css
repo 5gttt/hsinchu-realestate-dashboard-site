@@ -1,0 +1,89 @@
+/* 建案熱力看板專用（共用樣式在 theme.css） */
+/* Treemap */
+.tm { position: relative; height: 560px; padding: 0; overflow: hidden; }
+.tile { position: absolute; padding: 3px; cursor: pointer; }
+.tile > div { width: 100%; height: 100%; border-radius: 5px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; transition: box-shadow .12s, opacity .12s; }
+.tile:hover > div { box-shadow: inset 0 0 0 2px var(--ink); }
+.tile.on > div { box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 2px #fff inset; }
+.tile.dim { opacity: .18; }
+.tile b { font-size: 13.5px; font-weight: 500; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile small { font-size: 11.5px; opacity: .75; }
+.tile .n { font-family: var(--mono); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; }
+.tile .n em { font-style: normal; font-size: 20px; font-weight: 500; line-height: 1; }
+.tile.sm > div { padding: 6px 8px; }
+.tile.sm .n, .tile.sm small { display: none; }
+.tile.xs b { display: none; }
+
+/* 建案明細 */
+.det-h { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.det-h h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .01em; }
+.det-h p { margin: 2px 0 0; color: var(--ink3); font-size: 13px; }
+.det { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 12px; }
+.stat { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
+.stat .big { font-size: 52px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+.stat .big small { font-size: 18px; font-weight: 500; color: var(--ink3); margin-left: 2px; }
+.stat .big.na { font-size: 28px; color: var(--ink3); letter-spacing: 0; }
+.stat .lb { font-size: 12.5px; color: var(--ink2); }
+.prog { display: flex; gap: 2px; height: 10px; }
+.prog i { flex: 1; background: var(--line2); border-radius: 1px; }
+.prog i.s { background: var(--ink); }
+.prog i.h { background: linear-gradient(90deg, var(--ink) var(--p), var(--line2) var(--p)); }
+.ms { display: flex; flex-direction: column; border-top: 1px solid var(--line2); }
+.ms div { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line2); font-size: 13px; }
+.ms div:last-child { border-bottom: 0; }
+.ms span { color: var(--ink2); }
+.ms b { font-family: var(--mono); font-weight: 500; font-size: 12.5px; }
+.ms b em { font-style: normal; color: var(--ink3); margin-left: 8px; }
+
+/* 樓層單價分析 */
+.fl-sum { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--line2); border-radius: 8px; margin-bottom: 14px; }
+.fl-row { display: flex; gap: 12px; align-items: flex-start; }
+.fl-row > span { flex: none; font-size: 12px; color: var(--ink3); width: 64px; padding-top: 4px; }
+.fl-row > b { font-weight: 500; padding-top: 2px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-family: var(--mono); font-size: 11.5px; padding: 3px 8px; border-radius: 5px; border: 1px solid var(--line); background: var(--card); }
+.chip.base { border-color: var(--ink); font-weight: 500; }
+.chip.hi { border-color: var(--acc); color: var(--acc); }
+.chip.insuf { color: var(--ink3); border-style: dashed; }
+.chip em { font-style: normal; font-family: var(--sans); font-size: 10.5px; color: var(--ink3); margin-left: 4px; }
+.gridwrap { overflow: auto; max-height: 620px; border: 1px solid var(--line2); border-radius: 8px; }
+table.fg { border-collapse: separate; border-spacing: 2px; font-family: var(--mono); font-size: 11.5px; }
+.fg th { position: sticky; top: 0; background: var(--card); z-index: 1; font-family: var(--sans); font-weight: 500; font-size: 12px; padding: 6px 4px; white-space: nowrap; color: var(--ink2); }
+.fg th small { display: block; font-family: var(--mono); font-weight: 400; font-size: 10.5px; color: var(--ink3); }
+.fg th.fl, .fg td.fl { position: sticky; left: 0; background: var(--card); z-index: 2; color: var(--ink3); text-align: right; padding-right: 8px; font-size: 11.5px; }
+.fg th.fl { z-index: 3; }
+.fg td { width: 64px; min-width: 64px; height: 30px; text-align: center; border-radius: 3px; }
+.fg td.u { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line2) 4px 5px); color: var(--ink3); }
+.fg td.dbl { box-shadow: inset 0 0 0 1.5px var(--warn); }
+.gl2 { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--ink3); margin-top: 10px; flex-wrap: wrap; }
+.gl2 i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
+
+/* 坪數區間比較 */
+.ac-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--line2); }
+.ac-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink3); }
+.ac-form input { width: 110px; height: 32px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; background: var(--card); outline: none; font-family: var(--mono); font-size: 13px; }
+.ac-form input:focus { border-color: var(--ink); }
+.ac-form .dash { padding-bottom: 6px; color: var(--ink3); }
+.ac-form .hint { flex: 1; min-width: 200px; font-size: 12.5px; color: var(--ink2); padding-bottom: 6px; }
+.ac-table-wrap { overflow-x: auto; }
+table.ac { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ac th { text-align: left; font-weight: 500; font-size: 12px; color: var(--ink3); padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ac td { padding: 10px 14px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+.ac td.num, .ac th.num { text-align: right; font-family: var(--mono); font-size: 12.5px; }
+.ac tbody tr { cursor: pointer; }
+.ac tbody tr:hover { background: var(--bg); }
+.ac .rk { font-family: var(--mono); color: var(--ink3); width: 36px; }
+.ac .pn { font-weight: 500; }
+.ac .low { font-family: var(--sans); font-size: 10.5px; color: var(--warn); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-left: 6px; }
+.ac-sum { padding: 12px 20px; font-size: 12.5px; color: var(--ink2); border-bottom: 1px solid var(--line2); }
+
+
+@media (max-width: 1100px) { .det { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .tm { height: 440px; }
+  .stat .big { font-size: 44px; }
+}
+
+/* 數字說明（已售戶數拆解、樓層表涵蓋範圍） */
+.bd { margin-top: 8px; font-size: 11.5px; color: var(--ink3); line-height: 1.6; }
+.stat .warn { margin-top: 6px; font-size: 12px; color: var(--warn); }
