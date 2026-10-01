@@ -29,10 +29,10 @@ function multiLine(el, labels, series, { fmt = f1, unit = '', H = 220 } = {}) {
   const W = Math.max(el.clientWidth, 260), pl = 40, pr = 10, pt = 14, pb = 26, iw = W - pl - pr, ih = H - pt - pb;
   const y = nice(Math.min(...all), Math.max(...all)), sy = v => pt + ih - (v - y.lo) / ((y.hi - y.lo) || 1) * ih;
   const sx = i => pl + (labels.length === 1 ? iw / 2 : iw * i / (labels.length - 1));
-  const step = Math.ceil(labels.length / (iw / 46));
+  const step = Math.ceil(labels.length / (iw / 52));
   let s = `<svg width="${W}" height="${H}">`;
   y.t.forEach(t => { s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${sy(t)}" y2="${sy(t)}"/><text class="ax" x="${pl - 8}" y="${sy(t) + 3.5}" text-anchor="end">${fmt(t)}</text>`; });
-  labels.forEach((l, i) => { if (i % step === 0 || labels.length <= 14) s += `<text class="ax" x="${sx(i)}" y="${H - 8}" text-anchor="middle">${l}</text>`; });
+  labels.forEach((l, i) => { if (i % step === 0) s += `<text class="ax" x="${sx(i)}" y="${H - 8}" text-anchor="middle">${l}</text>`; });
   series.forEach(sr => {
     let d = '', pen = false;
     sr.vals.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${sx(i)},${sy(v)}`; pen = true; });
@@ -300,6 +300,108 @@ $('paceTable').addEventListener('click', e => {
   showTab('project');
 });
 
+// ---------- 車位價格 ----------
+const PK = { picks: ['竹北市', '新竹市', '竹東鎮', '頭份市'], type: '坡道平面', step: 'q', data: null, sort: 'last' };
+const periodOf = (m, step) => {
+  const y = m.slice(0, 4), mo = +m.slice(5);
+  return step === 'q' ? `${y}Q${Math.ceil(mo / 3)}` : `${y}H${mo <= 6 ? 1 : 2}`;
+};
+const periodLabel = p => `${+p.slice(0, 4) - 1911}${p.slice(4)}`;   // 2025Q3 → 114Q3（民國）
+
+function renderParkPicks() {
+  $('parkPick').innerHTML = REGION_OPTIONS().map(o => {
+    if (o.group) return `<span class="pk-grp">${o.group}</span>`;
+    const i = PK.picks.indexOf(o.v);
+    return `<button class="pk ${i >= 0 ? 'on' : ''}" data-v="${esc(o.v)}" style="${i >= 0 ? `color:${COLORS[i]}` : ''}"><i style="${i >= 0 ? `background:${COLORS[i]}` : ''}"></i>${esc(o.t)}</button>`;
+  }).join('');
+}
+$('parkPick').addEventListener('click', e => {
+  const b = e.target.closest('.pk');
+  if (!b) return;
+  const v = b.dataset.v, i = PK.picks.indexOf(v);
+  if (i >= 0) PK.picks.splice(i, 1);
+  else if (PK.picks.length < MAX_PICK) PK.picks.push(v);
+  else { PK.picks.shift(); PK.picks.push(v); }
+  renderPark();
+});
+[['parkType', 'type'], ['parkStep', 'step']].forEach(([id, k]) => $(id).addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  PK[k] = b.dataset.v;
+  [...$(id).children].forEach(x => x.classList.toggle('on', x === b));
+  renderPark();
+}));
+
+async function ensurePark() {
+  if (!PK.data) PK.data = (await Api.parking()).filter(x => parkValid(x) && !x.nr);
+  return PK.data;
+}
+
+function renderPark() {
+  renderParkPicks();
+  const rows = PK.data.filter(x => x.g === PK.type);
+  const periods = [...new Set(rows.map(x => periodOf(x.m, PK.step)))].sort();
+  // 最近 4 季（或 2 個半年）vs 再前一段：用月份算，避免最後一季資料不完整時失真
+  const ms = [...new Set(PK.data.map(x => x.m))].sort(), l12 = new Set(ms.slice(-12)), p12 = new Set(ms.slice(-24, -12));
+  const regions = PK.picks.map((v, i) => {
+    const cities = citiesForRegion(v, CITIES);
+    return { v, name: regionLabel(v).replace('全區', '（全區）'), color: COLORS[i], rows: rows.filter(x => cities.includes(x.r)) };
+  });
+  if (!regions.length) { ['parkTable', 'parkTrend', 'parkProj'].forEach(id => { $(id).innerHTML = EMPTY; }); $('parkLegend').innerHTML = ''; return; }
+
+  const st = g => {
+    const P = g.rows.map(x => x.p), a = med(g.rows.filter(x => l12.has(x.m)).map(x => x.p)), b = med(g.rows.filter(x => p12.has(x.m)).map(x => x.p));
+    const fl = Object.fromEntries(parkByFloor(g.rows.filter(x => l12.has(x.m))).map(f => [f.f, f]));
+    return { n: P.length, n12: g.rows.filter(x => l12.has(x.m)).length, m12: a, chg: a && b ? (a / b - 1) * 100 : null, fl,
+      ping: med(g.rows.map(x => x.a).filter(v => v > 0)), multi: P.length ? g.rows.filter(x => x.n >= 2).length / P.length * 100 : 0,
+      pj: new Set(g.rows.filter(x => l12.has(x.m)).map(x => x.pj)).size };
+  };
+  const S = regions.map(st);
+  const row = (label, f) => `<tr><td>${label}</td>${S.map(s => `<td>${f(s)}</td>`).join('')}</tr>`;
+  const flRow = f => row(`${f} 中位數（近12月）`, s => s.fl[f] ? `${fi(s.fl[f].med)}<small>萬（${s.fl[f].n}）</small>` : '—');
+  $('parkTable').innerHTML = `<thead><tr><th></th>${regions.map(g => `<th><span class="dot" style="background:${g.color}"></span>${esc(g.name)}</th>`).join('')}</tr></thead><tbody>
+    ${row('近12月中位數', s => s.n12 ? fi(s.m12) + '<small>萬/位</small>' : '—')}
+    ${row('較前12月', s => s.chg == null ? '—' : `${s.chg > 0 ? '+' : ''}${s.chg.toFixed(1)}%`)}
+    ${PK.type === '一樓平面' ? flRow('1F') : ['B1', 'B2', 'B3', 'B4'].map(flRow).join('')}
+    ${row('近12月車位數', s => s.n12.toLocaleString())}
+    ${row('近12月有成交建案', s => s.pj)}
+    ${row('車位坪數中位數', s => s.n ? f1(s.ping) + '<small>坪</small>' : '—')}
+    ${row('一次買 2 位以上佔比', s => s.n ? s.multi.toFixed(0) + '%' : '—')}
+  </tbody>`;
+
+  multiLine($('parkTrend'), periods.map(periodLabel), regions.map(g => ({ name: g.name, color: g.color,
+    vals: periods.map(p => { const a = g.rows.filter(x => periodOf(x.m, PK.step) === p).map(x => x.p); return a.length >= 5 ? med(a) : null; }) })),
+    { fmt: fi, unit: ' 萬' });
+  legend($('parkLegend'), regions);
+
+  // 建案表：所選區域內，依建案彙總（至少 3 位）
+  const cities = new Set(regions.flatMap(g => citiesForRegion(g.v, CITIES)));
+  const by = {};
+  rows.filter(x => cities.has(x.r)).forEach(x => (by[x.pj] = by[x.pj] || []).push(x));
+  let list = Object.entries(by).filter(([, a]) => a.length >= 3).map(([pj, a]) => {
+    const fl = Object.fromEntries(parkByFloor(a).map(f => [f.f, f.med]));
+    const P = a.map(x => x.p);
+    return { pj, r: a[0].r, n: a.length, med: med(P), lo: Math.min(...P), hi: Math.max(...P), fl, first: a.reduce((m, x) => x.m < m ? x.m : m, '9'), last: a.reduce((m, x) => x.m > m ? x.m : m, '') };
+  });
+  const key = PK.sort;
+  list.sort((a, b) => key === 'last' ? b.last.localeCompare(a.last) || b.n - a.n : b[key] - a[key]);
+  $('parkProjNote').textContent = `${list.length} 案 · 至少 3 位才列入 · 點建案名稱看車位明細`;
+  const fls = PK.type === '一樓平面' ? ['1F'] : ['B1', 'B2', 'B3', 'B4'];
+  const th = (k, t) => `<th data-k="${k}"${key === k ? ' style="color:var(--ink)"' : ''}>${t}${key === k ? ' ↓' : ''}</th>`;
+  $('parkProj').innerHTML = `<thead><tr><th class="l">建案</th><th class="l">區域</th>${th('n', '車位數')}${th('med', '中位數')}<th>最低–最高</th>${fls.map(f => `<th>${f}</th>`).join('')}<th>首筆</th>${th('last', '最近成交')}</tr></thead>
+    <tbody>${list.slice(0, 150).map(p => `<tr>
+      <td class="nm l"><a href="projects.html#p=${encodeURIComponent(p.pj)}">${esc(p.pj)}</a></td><td class="rg l">${esc(p.r)}</td>
+      <td>${p.n}</td><td><b>${fi(p.med)}</b></td><td>${p.lo === p.hi ? fi(p.lo) : `${fi(p.lo)}–${fi(p.hi)}`}</td>
+      ${fls.map(f => `<td>${p.fl[f] != null ? fi(p.fl[f]) : '—'}</td>`).join('')}
+      <td>${mLabel(p.first)}</td><td>${mLabel(p.last)}</td></tr>`).join('') || `<tr><td colspan="10">${EMPTY}</td></tr>`}</tbody>`;
+}
+$('parkProj').addEventListener('click', e => {
+  const t = e.target.closest('th[data-k]');
+  if (!t) return;
+  PK.sort = t.dataset.k;
+  renderPark();
+});
+
 // ---------- 分頁 ----------
 function showTab(t) {
   [...$('tabs').children].forEach(b => b.classList.toggle('on', b.dataset.tab === t));
@@ -308,6 +410,7 @@ function showTab(t) {
   if (t === 'region') renderRegion();
   if (t === 'project') renderProject();
   if (t === 'pace') ensurePace().then(renderPace).catch(err => { $('paceTable').innerHTML = `<tbody><tr><td>載入失敗：${esc(err.message)}</td></tr></tbody>`; });
+  if (t === 'park') ensurePark().then(renderPark).catch(err => { $('parkTable').innerHTML = `<tbody><tr><td>載入失敗：${esc(err.message)}</td></tr></tbody>`; });
 }
 $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); });
 
@@ -322,8 +425,9 @@ async function init() {
     buildRegionSelect($('pcRegion'), CITIES);
     opt($('pcYear'), [['all', '全部'], ...[...new Set(MONTHS.map(m => m.slice(0, 4)))].sort().reverse().map(y => [y, y + ' 年開賣'])]);
     RG.picks = RG.picks.filter(v => citiesForRegion(v, CITIES).length);
+    PK.picks = PK.picks.filter(v => citiesForRegion(v, CITIES).length);
     const t = (location.hash || '#region').slice(1);
-    showTab(['region', 'project', 'pace'].includes(t) ? t : 'region');
+    showTab(['region', 'project', 'pace', 'park'].includes(t) ? t : 'region');
   } catch (err) {
     $('stamp').textContent = `讀取失敗：${err.message}`;
   }

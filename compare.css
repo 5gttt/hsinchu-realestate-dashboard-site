@@ -77,3 +77,8 @@ table.rank-t { width: 100%; border-collapse: collapse; font-size: 13px; min-widt
 @media (max-width: 1000px) {
   .grid2, .explain { grid-template-columns: 1fr; }
 }
+
+/* 車位價格分頁 */
+.rank-t td.nm a { color: inherit; text-decoration: none; }
+.rank-t td.nm a:hover { color: var(--acc); }
+.rank-t td b { font-weight: 500; }

@@ -138,12 +138,15 @@ async function loadDetail(nm) {
   const my = ++detailReq;
   const el = $('detail');
   el.innerHTML = `<div class="det-h"><div><h2>${esc(nm)}</h2><p>載入中…</p></div></div>`;
-  const { speed, floor } = await Api.project(nm).catch(() => ({ speed: null, floor: null }));
+  const [{ speed, floor }, park] = await Promise.all([
+    Api.project(nm).catch(() => ({ speed: null, floor: null })),
+    Api.parking().catch(() => null),
+  ]);
   if (my !== detailReq) return;
-  renderDetail(nm, speed, floor);
+  renderDetail(nm, speed, floor, park ? park.filter(x => normName(x.pj) === normName(nm)) : null);
 }
 
-function renderDetail(nm, speed, floor) {
+function renderDetail(nm, speed, floor, park) {
   const el = $('detail');
   const item = ALL_ITEMS.find(x => x.nm === nm);
   const units = speed && Number(speed['總戶數']) > 0 ? Number(speed['總戶數']) : null;
@@ -202,10 +205,102 @@ function renderDetail(nm, speed, floor) {
   el.innerHTML = `
     <div class="det-h"><div><h2>${esc(nm)}</h2><p>${esc(subParts.join(' · '))}</p></div><span class="meta">點擊上方色塊切換建案</span></div>
     <div class="det">${statCard}${curveCard}</div>
-    ${floorPanel(floor)}`;
+    ${floorPanel(floor)}
+    ${parkPanel(park)}`;
 
   if (pts.length) curve($('cv'), pts, !!units);
   else $('cv').innerHTML = '<div class="empty">無法計算銷售速度</div>';
+  if ($('pkDots')) parkTrend($('pkDots'), park.filter(parkValid));
+}
+
+// ---------- 車位價格 ----------
+const PARK_COLORS = { B1: 'var(--acc)', B2: 'oklch(0.62 0.15 45)', B3: 'oklch(0.52 0.11 150)', B4: 'oklch(0.32 0.01 250)', 'B5+': 'oklch(0.32 0.01 250)', '1F': 'oklch(0.72 0.01 250)', '2F+': 'oklch(0.72 0.01 250)' };
+const parkColor = f => PARK_COLORS[f] || 'oklch(0.72 0.01 250)';
+const mLabel = m => `${m.slice(2, 4)}/${m.slice(5)}`;
+
+function parkPanel(rows) {
+  const head = '<div class="ph"><h3>車位價格</h3><small>萬元/位 · 已排除解約、特殊交易</small></div>';
+  if (rows == null) return `<div class="card panel" style="margin-top:12px">${head}<div class="empty">車位資料讀取失敗</div></div>`;
+  if (!rows.length) return `<div class="card panel" style="margin-top:12px">${head}<div class="empty">此建案沒有車位成交登錄</div></div>`;
+  const ok = rows.filter(parkValid), zero = rows.filter(x => x.zero).length, low = rows.filter(x => x.q).length;
+  const months = [...new Set(rows.map(x => x.m))].sort(), recent = new Set(months.slice(-6));
+  const multi = rows.filter(x => x.n >= 2).length;
+
+  // 摘要：坡道平面中位數、一戶多車位比例
+  const ramp = ok.filter(x => x.g === '坡道平面').map(x => x.p);
+  const sumRows = [
+    ramp.length ? `<div class="fl-row"><span>坡道平面</span><b>中位數 ${fi(med(ramp))} 萬 · ${fi(Math.min(...ramp))}–${fi(Math.max(...ramp))} 萬（${ramp.length} 位）</b></div>` : '',
+    `<div class="fl-row"><span>一戶多車位</span><b>${multi} 位屬於一次買 2 個以上的交易（佔 ${(multi / rows.length * 100).toFixed(0)}%）</b></div>`,
+  ].filter(Boolean).join('');
+
+  // 類別 × 樓層
+  let body = '';
+  PARK_GROUPS.forEach(([g]) => {
+    const gr = ok.filter(x => x.g === g);
+    if (!gr.length) return;
+    parkByFloor(gr).forEach((f, i, arr) => {
+      const fr = gr.filter(x => x.f === f.f), rc = fr.filter(x => recent.has(x.m)).map(x => x.p);
+      const ar = fr.map(x => x.a).filter(a => a > 0), last = fr.reduce((a, x) => x.m > a ? x.m : a, '');
+      body += `<tr>${i === 0 ? `<td class="pn" rowspan="${arr.length}">${g}</td>` : ''}`
+        + `<td><i class="fdot" style="background:${parkColor(f.f)}"></i>${esc(f.f)}</td><td class="num">${f.n}</td>`
+        + `<td class="num"><b>${fi(f.med)}</b></td><td class="num">${f.lo === f.hi ? fi(f.lo) : `${fi(f.lo)}–${fi(f.hi)}`}</td>`
+        + `<td class="num">${rc.length ? `${fi(med(rc))}<small>（${rc.length}）</small>` : '—'}</td>`
+        + `<td class="num">${ar.length ? f1(med(ar)) : '—'}</td><td class="num">${last ? mLabel(last) : '—'}</td></tr>`;
+    });
+  });
+
+  return `
+    <div class="card panel" style="margin-top:12px">
+      ${head}
+      <div class="fl-sum">${sumRows}</div>
+      <div class="pk-grid">
+        <div class="ac-table-wrap"><table class="ac pkt">
+          <thead><tr><th>類別</th><th>樓層</th><th class="num">車位數</th><th class="num">中位數</th><th class="num">最低–最高</th><th class="num">近 6 月中位數</th><th class="num">坪數</th><th class="num">最近成交</th></tr></thead>
+          <tbody>${body || '<tr><td colspan="8">無有效價格</td></tr>'}</tbody>
+        </table></div>
+        <div><div class="pk-cap">各樓層價格走勢（每點＝當月成交車位中位數，滑鼠移上或點按看數字）</div><div class="chart" id="pkDots"></div></div>
+      </div>
+      <div class="bd">${[
+        `共 ${rows.length} 個車位`,
+        zero ? `價格 0（含於房價或贈送）${zero} 個未計入` : '',
+        low ? `${low} 個價格異常待確認未計入（坡道平面低於 ${PARK_LOW} 萬，或高於同案中位數 ${PARK_HIGH} 倍且坪數不大）` : '',
+        '近 6 月＝此建案最後 6 個有成交的月份',
+      ].filter(Boolean).join('；')}</div>
+    </div>`;
+}
+
+// 各樓層價格走勢：一條線＝一個樓層（坡道平面優先），每點＝該月成交車位的價格中位數
+function parkTrend(el, rows) {
+  const ramp = rows.filter(x => x.g === '坡道平面');
+  const use = ramp.length >= 3 ? ramp : rows.filter(x => x.g === (PARK_GROUPS.find(([g]) => rows.some(x => x.g === g)) || [''])[0]);
+  if (!use.length) { el.innerHTML = '<div class="empty">無有效價格</div>'; return; }
+  const ms = [...new Set(use.map(x => x.m))].sort();
+  // 首尾之間每個月都列出（沒成交的月份留空，線直接連到下一個有成交的月份）
+  const months = [];
+  for (let [y, m] = ms[0].split('-').map(Number); `${y}-${pad(m)}` <= ms[ms.length - 1]; m === 12 ? (y++, m = 1) : m++) months.push(`${y}-${pad(m)}`);
+  const floors = [...new Set(use.map(x => x.f))].sort((a, b) => PARK_FLOORS.indexOf(a) - PARK_FLOORS.indexOf(b));
+  const series = floors.map(f => ({ f, pts: months.map(m => { const a = use.filter(x => x.f === f && x.m === m).map(x => x.p); return a.length ? { v: med(a), n: a.length } : null; }) }));
+  const all = series.flatMap(s => s.pts.filter(Boolean).map(p => p.v));
+  const W = Math.max(el.clientWidth, 260), H = 240, pl = 40, pr = 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb;
+  const y = nice(Math.min(...all), Math.max(...all)), sy = v => pt + ih - (v - y.lo) / ((y.hi - y.lo) || 1) * ih;
+  const sx = i => pl + (months.length === 1 ? iw / 2 : iw * i / (months.length - 1));
+  const step = Math.ceil(months.length / (iw / 46));
+  let s = `<svg width="${W}" height="${H}">`;
+  y.t.forEach(t => { s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${sy(t)}" y2="${sy(t)}"/><text class="ax" x="${pl - 8}" y="${sy(t) + 3.5}" text-anchor="end">${fi(t)}</text>`; });
+  months.forEach((m, i) => { if (i % step === 0 || months.length <= 12) s += `<text class="ax" x="${sx(i)}" y="${H - 8}" text-anchor="middle">${mLabel(m)}</text>`; });
+  series.forEach(sr => {
+    const c = parkColor(sr.f), pts = sr.pts.map((p, i) => p && { x: sx(i), y: sy(p.v) }).filter(Boolean);
+    s += `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join('')}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linejoin="round"/>`;
+    pts.forEach(p => { s += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${c}"/>`; });
+  });
+  // 每個月一條感應區：列出各樓層當月中位數
+  const cw = iw / Math.max(months.length - 1, 1);
+  months.forEach((m, i) => {
+    const lines = series.filter(sr => sr.pts[i]).map(sr => `${esc(sr.f)}　<b>${fi(sr.pts[i].v)} 萬</b>（${sr.pts[i].n} 位）`);
+    if (lines.length) s += `<rect x="${sx(i) - cw / 2}" y="${pt}" width="${cw}" height="${ih}" fill="transparent" data-tip="${esc(`${mLabel(m)}<br>${lines.join('<br>')}`)}"/>`;
+  });
+  el.innerHTML = s + '</svg>';
+  el.insertAdjacentHTML('beforeend', `<div class="gl2">${floors.map(f => `<span><i style="background:${parkColor(f)};height:3px;vertical-align:3px"></i>${esc(f)}</span>`).join('')}<span>${esc(use[0].g)}</span></div>`);
 }
 
 function curve(el, raw, hasUnits) {
@@ -402,6 +497,13 @@ async function init() {
     $('stamp').textContent = `讀取失敗：${err.message}`;
   }
   await loadStats();
+  // 從比較分析頁點建案過來：projects.html#p=建案名稱
+  let h = '';
+  try { h = decodeURIComponent((location.hash.match(/^#p=(.+)$/) || [])[1] || ''); } catch { h = ''; }
+  if (h) {
+    const hit = ALL_ITEMS.find(x => normName(x.nm) === normName(h));
+    selectProject(hit ? hit.nm : h, true);
+  }
 }
 
 $('refresh').addEventListener('click', async () => {

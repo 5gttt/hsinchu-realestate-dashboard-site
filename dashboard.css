@@ -14,7 +14,7 @@
 .reset:hover { color: var(--ink); }
 
 /* KPI */
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
 .kpi { padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0; border-left: 1px solid var(--line2); }
 .kpi:first-child { border-left: 0; }
 .kpi .lb { font-size: 12.5px; color: var(--ink2); }
@@ -28,11 +28,11 @@
 .dn b, .fl b { background: var(--line2); color: var(--ink); }
 
 /* 重點卡 */
-.hl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.hl { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
 .hl .card { padding: 14px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .hl small { font-size: 12px; color: var(--ink3); }
 .hl b { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hl span { font-family: var(--mono); font-size: 12px; color: var(--ink2); }
+.hl span { font-family: var(--mono); font-size: 12px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hl .qa { cursor: pointer; text-align: left; border-color: var(--ink); font: inherit; color: inherit; }
 .hl .qa:hover { background: var(--line2); }
 .hl .qa b { display: flex; gap: 8px; align-items: center; }
@@ -139,14 +139,19 @@ table.dt { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 9
 
 @media (max-width: 1180px) {
   .c8, .c7, .c6, .c5, .c4 { grid-column: span 12; }
-  .kpis, .hl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .kpi:nth-child(3) { border-left: 0; }
-  .kpi:nth-child(n+3) { border-top: 1px solid var(--line2); }
+  /* 5 張卡：上排 3、下排 2 */
+  .kpis, .hl { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .hl > * { grid-column: span 2; }
+  .hl > :nth-child(n+4) { grid-column: span 3; }
+  .kpi { grid-column: span 2; }
+  .kpi:nth-child(n+4) { grid-column: span 3; border-top: 1px solid var(--line2); }
+  .kpi:nth-child(4) { border-left: 0; }
   .insight { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .kpis, .hl { grid-template-columns: minmax(0, 1fr); }
-  .kpi { border-left: 0; }
+  .hl > *, .hl > :nth-child(n+4) { grid-column: auto; }
+  .kpi, .kpi:nth-child(n+4) { border-left: 0; grid-column: auto; }
   .kpi:nth-child(n+2) { border-top: 1px solid var(--line2); }
   .kpi .v { font-size: 28px; }
 }

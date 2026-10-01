@@ -10,6 +10,8 @@ const EXPAND_FIELDS = ['建物型態', '土地位置建物門牌', '棟及號', 
 
 const S = { year: 'all', region: 'all', month: 'all', type: 'all', period: 'all', exSp: true, exG: true, exNR: true, sort: 'k', dir: -1, page: 0, q: '' };
 let DATA = [], MONTHS = [], CITIES = [], CUR = [], CONC = [], BROKEN = [];
+let PARK = null;   // 車位明細（另外載入，晚到再補畫車位卡）
+let DET = {};      // 數字卡點擊明細：key → { title, html }
 const BROKEN_NAME = /[?？\ufffd]/;   // 政府原始檔罕見字被轉成問號
 const OPEN = new Set();   // 明細表已展開的列
 
@@ -87,6 +89,11 @@ function baseRows() {
     !(S.exNR && x.nr));
 }
 const inMonths = (rows, ms) => { const k = new Set(ms); return rows.filter(x => k.has(x.m)); };
+// 車位卡：只看坡道平面、排除價格 0／待確認；套用區域與廠辦開關（型態、一樓等房屋條件不適用）
+function parkBase() {
+  const cities = citiesForRegion(S.region, CITIES);
+  return PARK.filter(x => x.g === '坡道平面' && parkValid(x) && (!cities.length || cities.includes(x.r)) && !(S.exNR && x.nr));
+}
 
 // ---------- 圖表 ----------
 function colChart(el, pts, { fmt = fi, colorFn, marker, H = 210, unit = '', after } = {}) {
@@ -150,14 +157,16 @@ function render() {
   CUR = inMonths(B0, ms);
 
   // 比較基準：全部期間 → 近 12 月 vs 前 12 月；有篩選 → 去年同期
-  let cmpCur = cur, prev, cmpLabel;
+  let cmpCur = cur, prev, cmpLabel, cmpMs = ms, prevMs;
   if (!filtered) {
-    const l12 = MONTHS.slice(-12);
-    cmpCur = inMonths(B, l12);
-    prev = inMonths(B, MONTHS.slice(-24, -12));
+    cmpMs = MONTHS.slice(-12);
+    prevMs = MONTHS.slice(-24, -12);
+    cmpCur = inMonths(B, cmpMs);
+    prev = inMonths(B, prevMs);
     cmpLabel = '近12月 vs 前12月';
   } else {
-    prev = inMonths(B, ms.map(m => shiftYear(m, 1)));
+    prevMs = ms.map(m => shiftYear(m, 1));
+    prev = inMonths(B, prevMs);
     cmpLabel = '較去年同期';
   }
 
@@ -167,13 +176,25 @@ function render() {
   const P = cur.map(x => x.p), T = cur.map(x => x.tot), Q = cur.map(x => x.ping);
 
   const K = [
-    ['交易量', cur.length.toLocaleString(), '件', '', cmpCur.length, prev.length, byM.map(x => x.n)],
-    ['總價平均', fi(avg(T)), '萬元', cur.length ? `中位數 ${fi(med(T))}` : '', avg(cmpCur.map(x => x.tot)), avg(prev.map(x => x.tot)), byM.map(x => avg(x.a.map(y => y.tot)))],
-    ['建物單價平均', f1(avg(P)), '萬/坪', cur.length ? `中位數 ${f1(med(P))} · ${f1(Math.min(...P))}–${f1(Math.max(...P))}` : '', avg(cmpCur.map(x => x.p)), avg(prev.map(x => x.p)), byM.map(x => avg(x.a.map(y => y.p)))],
-    ['建物坪數平均', f1(avg(Q)), '坪', cur.length ? `中位數 ${f1(med(Q))}` : '', avg(cmpCur.map(x => x.ping)), avg(prev.map(x => x.ping)), byM.map(x => avg(x.a.map(y => y.ping)))],
+    ['vol', '交易量', cur.length.toLocaleString(), '件', '', cmpCur.length, prev.length, byM.map(x => x.n)],
+    ['tot', '總價平均', fi(avg(T)), '萬元', cur.length ? `中位數 ${fi(med(T))}` : '', avg(cmpCur.map(x => x.tot)), avg(prev.map(x => x.tot)), byM.map(x => avg(x.a.map(y => y.tot)))],
+    ['price', '建物單價平均', f1(avg(P)), '萬/坪', cur.length ? `中位數 ${f1(med(P))} · ${f1(Math.min(...P))}–${f1(Math.max(...P))}` : '', avg(cmpCur.map(x => x.p)), avg(prev.map(x => x.p)), byM.map(x => avg(x.a.map(y => y.p)))],
+    ['ping', '建物坪數平均', f1(avg(Q)), '坪', cur.length ? `中位數 ${f1(med(Q))}` : '', avg(cmpCur.map(x => x.ping)), avg(prev.map(x => x.ping)), byM.map(x => avg(x.a.map(y => y.ping)))],
   ];
-  $('kpis').innerHTML = K.map(([lb, v, u, sub, c, p, sp]) =>
-    `<div class="kpi"><div class="lb">${lb}</div><div class="v">${v}<small>${u}</small></div><div class="sub">${sub}</div>`
+  // 車位：本期（區域＋期間＋廠辦開關）所有類別；卡片數字只看坡道平面
+  const cities = citiesForRegion(S.region, CITIES), mk = new Set(ms);
+  const parkScope = PARK ? PARK.filter(x => mk.has(x.m) && (!cities.length || cities.includes(x.r)) && !(S.exNR && x.nr)) : [];
+  let pk = [];
+  if (!PARK) K.push(['', '車位價格中位數', '…', '', '車位資料載入中', 0, 0, []]);
+  else {
+    const PB = parkBase(), PV = (pk = inMonths(PB, ms)).map(x => x.p);
+    const fl = parkByFloor(pk).filter(f => /^B[1-3]$/.test(f.f));
+    const pm = inMonths(PB, prevMs || []).map(x => x.p);
+    K.push(['park', '車位價格中位數', PV.length ? fi(med(PV)) : '—', '萬/位', fl.map(f => `${f.f} ${fi(f.med)}`).join(' · ') || '坡道平面', med(inMonths(PB, cmpMs).map(x => x.p)), pm.length ? med(pm) : 0,
+      ms.map(m => { const a = pk.filter(x => x.m === m).map(x => x.p); return a.length >= 3 ? med(a) : 0; })]);
+  }
+  $('kpis').innerHTML = K.map(([key, lb, v, u, sub, c, p, sp]) =>
+    `<div class="kpi${key && cur.length ? ' tap' : ''}"${key ? ` data-det="${key}" role="button" tabindex="0"` : ''}><div class="lb">${lb}</div><div class="v">${v}<small>${u}</small></div><div class="sub">${sub}</div>`
     + `<div class="row"><span>${delta(c, prev.length ? p : 0)}<span class="dl">${cmpLabel}</span></span>${spark(sp.filter(x => x > 0))}</div></div>`).join('');
 
   // 建案彙總
@@ -197,11 +218,23 @@ function render() {
   const hi = cur.reduce((a, x) => !a || x.p > a.p ? x : a, null);
   const lo = cur.reduce((a, x) => !a || x.p < a.p ? x : a, null);
   const cx = cur.filter(x => x.cx).length;
+  // 最貴車位：單一車位價格最高（排除子母／大車位、價格 0 與待確認），同價多案時註明
+  const pv = parkScope.filter(x => parkValid(x) && !x.big);
+  const parkRank = [...pv].sort((a, b) => b.p - a.p || b.m.localeCompare(a.m)), ptop = parkRank[0];
+  let parkTop = '<div class="card"><small>最高車位價格</small><b>…</b><span>車位資料載入中</span></div>';
+  if (PARK) {
+    const ties = ptop ? new Set(pv.filter(x => x.p === ptop.p).map(x => x.pj)).size - 1 : 0;
+    parkTop = ptop
+      ? `<div class="card tap" data-det="pk" role="button" tabindex="0"><small>最高車位價格</small><b><a href="projects.html#p=${encodeURIComponent(ptop.pj)}" title="查看此建案車位明細">${esc(ptop.pj)}</a>${ties ? `<span> 等 ${ties + 1} 案</span>` : ''}</b><span>${fi(ptop.p)} 萬 · ${ptop.a ? f1(ptop.a) + ' 坪 · ' : ''}${esc(ptop.f)} · ${mLabel(ptop.m)}</span></div>`
+      : '<div class="card"><small>最高車位價格</small><b>—</b><span>此條件無車位成交</span></div>';
+  }
   $('hl').innerHTML = cur.length ? `
-    <div class="card"><small>最高單價建案</small><b>${projLink(hi.r, hi.pj)}</b><span>${f1(hi.p)} 萬/坪 · ${esc(hi.d)}</span></div>
-    <div class="card"><small>最低單價建案</small><b>${projLink(lo.r, lo.pj)}</b><span>${f1(lo.p)} 萬/坪 · ${esc(lo.d)}</span></div>
-    <div class="card"><small>解約量</small><b>${cx} <span>/ ${cur.length.toLocaleString()}</span></b><span>佔比 ${(cx / cur.length * 100).toFixed(2)}%</span></div>
+    <div class="card tap" data-det="hi" role="button" tabindex="0"><small>最高單價建案</small><b>${projLink(hi.r, hi.pj)}</b><span>${f1(hi.p)} 萬/坪 · ${esc(hi.d)}</span></div>
+    <div class="card tap" data-det="lo" role="button" tabindex="0"><small>最低單價建案</small><b>${projLink(lo.r, lo.pj)}</b><span>${f1(lo.p)} 萬/坪 · ${esc(lo.d)}</span></div>
+    ${parkTop}
+    <div class="card tap" data-det="cx" role="button" tabindex="0"><small>解約量</small><b>${cx} <span>/ ${cur.length.toLocaleString()}</span></b><span>佔比 ${(cx / cur.length * 100).toFixed(2)}%</span></div>
     <button class="card qa ${qaCount ? '' : 'ok'}" id="qaBtn" type="button"><small>數據品質警示</small><b><i></i>${qaCount ? `${qaCount} 項待確認` : '無異常'}</b><span>${qaCount ? `異常 ${flagged.length} 筆 · 集中月 ${CONC.length} · 缺字建案 ${BROKEN.length} →` : '—'}</span></button>` : '';
+  DET = buildDetails({ cur, cmpCur, prev, cmpLabel, ms, byM, T, P, Q, pk, parkScope, parkRank, flaggedN: flagged.length });
   const qb = $('qaBtn');
   if (qb && qaCount) qb.onclick = () => drawer(true);
 
@@ -342,6 +375,92 @@ const drawer = on => { $('drawer').classList.toggle('on', on); $('dbg').classLis
 $('dx').onclick = $('dbg').onclick = () => drawer(false);
 addEventListener('keydown', e => { if (e.key === 'Escape') drawer(false); });
 
+// ---------- 數字卡點擊明細（桌機、手機都用點的） ----------
+const TOT_BANDS = [[0, 1000, '1000 萬以下'], [1000, 1500, '1000–1500'], [1500, 2000, '1500–2000'], [2000, 2500, '2000–2500'], [2500, 3000, '2500–3000'], [3000, 1e9, '3000 萬以上']];
+const PING_BANDS = [[0, 20, '20 坪以下'], [20, 25, '20–25'], [25, 30, '25–30'], [30, 35, '30–35'], [35, 40, '35–40'], [40, 50, '40–50'], [50, 1e9, '50 坪以上']];
+const pct = (n, t) => t ? (n / t * 100).toFixed(1) + '%' : '—';
+const groupBy = (rows, f) => { const g = {}; rows.forEach(x => { const k = f(x); if (k) (g[k] = g[k] || []).push(x); }); return g; };
+const bigNums = items => `<div class="big2">${items.map(([l, v]) => `<div><small>${l}</small><b>${v}</b></div>`).join('')}</div>`;
+const bandRows = (vals, bands) => {
+  const c = bands.map(([a, b]) => vals.filter(v => v >= a && v < b).length), mx = Math.max(...c, 1);
+  return bands.map(([, , l], i) => [l, c[i].toLocaleString(), pct(c[i], vals.length), { bar: c[i] / mx }]);
+};
+const projCell = x => `<a href="projects.html#p=${encodeURIComponent(x.pj)}">${esc(x.pj)}</a>`;
+
+function buildDetails({ cur, cmpCur, prev, cmpLabel, ms, byM, T, P, Q, pk, parkScope, parkRank, flaggedN }) {
+  const D = {}, n = cur.length;
+  if (!n) return D;
+  const scope = esc($('scope').textContent);
+  const regions = Object.entries(groupBy(cur, x => x.r)).sort((a, b) => b[1].length - a[1].length);
+  const regMax = Math.max(...regions.map(([, a]) => a.length));
+
+  D.vol = { title: '交易量明細', html: `<p class="note">${scope}</p>`
+    + bigNums([['本期', `${n.toLocaleString()} 件`], [cmpLabel, `${cmpCur.length.toLocaleString()} vs ${prev.length.toLocaleString()}`], ['月均', `${f1(n / (ms.length || 1))} 件`]])
+    + `<h4>各區件數</h4>${popTable(['區域', '件數', '佔比', ''], regions.map(([r, a]) => [esc(r), a.length.toLocaleString(), pct(a.length, n), { bar: a.length / regMax }]))}`
+    + `<h4>近 12 個月</h4>${popTable(['月份', '件數', '均價 萬/坪'], byM.slice(-12).reverse().map(x => [mLabel(x.m), x.n.toLocaleString(), x.n ? f1(avg(x.a.map(y => y.p))) : '—']))}` };
+
+  D.tot = { title: '總價明細', html: `<p class="note">${scope} · 已扣除車位價格</p>`
+    + bigNums([['平均', `${fi(avg(T))} 萬`], ['中位數', `${fi(med(T))} 萬`], ['中間 50%', `${fi(quant(T, .25))}–${fi(quant(T, .75))} 萬`]])
+    + `<h4>總價帶分佈</h4>${popTable(['總價（萬）', '件數', '佔比', ''], bandRows(T, TOT_BANDS))}`
+    + `<h4>各區總價中位數</h4>${popTable(['區域', '件數', '中位數 萬'], regions.map(([r, a]) => [esc(r), a.length.toLocaleString(), fi(med(a.map(x => x.tot)))]))}` };
+
+  const regP = regions.map(([r, a]) => [r, a, avg(a.map(x => x.p))]).sort((a, b) => b[2] - a[2]), pMax = Math.max(...regP.map(x => x[2]));
+  D.price = { title: '建物單價明細', html: `<p class="note">${scope}${flaggedN ? ` · 另有 ${flaggedN} 筆異常單價未計入` : ''}</p>`
+    + bigNums([['平均', `${f1(avg(P))} 萬/坪`], ['中位數', `${f1(med(P))}`], ['中間 50%', `${f1(quant(P, .25))}–${f1(quant(P, .75))}`]])
+    + `<h4>各區平均單價（高→低）</h4>${popTable(['區域', '件數', '平均', '中位數', ''], regP.map(([r, a, v]) => [esc(r), a.length.toLocaleString(), f1(v), f1(med(a.map(x => x.p))), { bar: v / pMax }]))}` };
+
+  const rooms = ROOMS.map((l, k) => { const a = cur.filter(x => x.rooms === k); return [l, a]; }).filter(([, a]) => a.length), rMax = Math.max(...rooms.map(([, a]) => a.length));
+  D.ping = { title: '建物坪數明細', html: `<p class="note">${scope} · 已扣除車位坪數</p>`
+    + bigNums([['平均', `${f1(avg(Q))} 坪`], ['中位數', `${f1(med(Q))} 坪`], ['中間 50%', `${f1(quant(Q, .25))}–${f1(quant(Q, .75))} 坪`]])
+    + `<h4>坪數帶分佈</h4>${popTable(['坪數', '件數', '佔比', ''], bandRows(Q, PING_BANDS))}`
+    + `<h4>房型</h4>${popTable(['房型', '件數', '佔比', '平均坪數', ''], rooms.map(([l, a]) => [l, a.length.toLocaleString(), pct(a.length, n), f1(avg(a.map(x => x.ping))), { bar: a.length / rMax }]))}` };
+
+  if (PARK) {
+    const PV = pk.map(x => x.p), valid = parkScope.filter(parkValid);
+    const groups = PARK_GROUPS.map(([g]) => [g, valid.filter(x => x.g === g).map(x => x.p)]).filter(([, a]) => a.length);
+    const zero = parkScope.filter(x => x.zero).length, odd = parkScope.filter(x => x.q).length;
+    D.park = { title: '車位價格明細', html: `<p class="note">${scope} · 一個車位一筆（政府車位明細）</p>`
+      + (PV.length ? bigNums([['坡道平面中位數', `${fi(med(PV))} 萬`], ['車位數', `${pk.length.toLocaleString()} 位`], ['中間 50%', `${fi(quant(PV, .25))}–${fi(quant(PV, .75))} 萬`]]) : '<p class="note">此條件無坡道平面成交</p>')
+      + (PV.length ? `<h4>坡道平面各樓層</h4>${popTable(['樓層', '車位數', '中位數 萬', '最低–最高'], parkByFloor(pk).map(f => [esc(f.f), f.n, fi(f.med), `${fi(f.lo)}–${fi(f.hi)}`]))}` : '')
+      + `<h4>各類別</h4>${popTable(['類別', '車位數', '中位數 萬', '最低–最高'], groups.map(([g, a]) => [g, a.length.toLocaleString(), fi(med(a)), `${fi(Math.min(...a))}–${fi(Math.max(...a))}`]))}`
+      + `<p class="note">卡片數字只看坡道平面。子母／大車位：坪數與價格都明顯高於同建案一般車位（一個登記約等於兩個車位），另外統計。未計入：價格 0（含於房價或贈送）${zero} 位、價格異常待確認 ${odd} 位。</p>` };
+
+    const seen = new Set(), top = parkRank.filter(x => !seen.has(x.pj) && seen.add(x.pj)).slice(0, 10);
+    D.pk = { title: '最高車位價格', html: `<p class="note">${scope} · 每個建案取最高的一個車位</p>`
+      + popTable(['建案', '價格 萬', '坪數', '樓層', '成交'], top.map(x => [projCell(x), fi(x.p), x.a ? f1(x.a) : '—', esc(`${x.t} ${x.f}`), mLabel(x.m)]))
+      + '<p class="note">已排除子母／大車位（坪數與價格都明顯高於同建案一般車位）與價格異常值（高於同建案同樓層中位數 1.4 倍且坪數不大）。只有 1～2 筆成交的建案無法比對，請保留判讀。</p>' };
+  }
+
+  const byProj = Object.entries(groupBy(cur.filter(x => x.pj), x => x.pj)).map(([pj, a]) => {
+    const best = a.reduce((m, x) => x.p > m.p ? x : m), worst = a.reduce((m, x) => x.p < m.p ? x : m);
+    return { pj, r: a[0].r, a, best, worst, n: a.length, avg: avg(a.map(x => x.p)) };
+  });
+  const projLinkCell = x => `<a href="projects.html#p=${encodeURIComponent(x.pj)}">${esc(x.pj)}</a>`;
+  D.hi = { title: '最高單價建案', html: `<p class="note">${scope} · 每個建案取單價最高的一筆</p>`
+    + popTable(['建案', '區域', '最高 萬/坪', '建案均價', '成交日'], [...byProj].sort((a, b) => b.best.p - a.best.p).slice(0, 10).map(x => [projLinkCell(x), esc(x.r), f1(x.best.p), f1(x.avg), esc(x.best.d)])) };
+  D.lo = { title: '最低單價建案', html: `<p class="note">${scope} · 每個建案取單價最低的一筆（異常單筆已排除）</p>`
+    + popTable(['建案', '區域', '最低 萬/坪', '建案均價', '成交日'], [...byProj].sort((a, b) => a.worst.p - b.worst.p).slice(0, 10).map(x => [projLinkCell(x), esc(x.r), f1(x.worst.p), f1(x.avg), esc(x.worst.d)])) };
+
+  const cxp = byProj.map(x => ({ ...x, c: x.a.filter(y => y.cx).length })).filter(x => x.c).sort((a, b) => b.c - a.c || b.c / b.n - a.c / a.n);
+  const cxn = cur.filter(x => x.cx).length;
+  D.cx = { title: '解約明細', html: `<p class="note">${scope}</p>`
+    + bigNums([['解約', `${cxn} 件`], ['佔比', pct(cxn, n)], ['有解約的建案', `${cxp.length} 案`]])
+    + (cxp.length ? `<h4>解約最多的建案</h4>${popTable(['建案', '區域', '解約', '成交', '解約率'], cxp.slice(0, 10).map(x => [projLinkCell(x), esc(x.r), x.c, x.n, pct(x.c, x.n)]))}` : '<p class="note">此條件沒有解約紀錄</p>') };
+  return D;
+}
+
+// 點數字卡 → 彈窗；卡片裡的連結照常跳頁
+['kpis', 'hl'].forEach(id => {
+  const el = $(id);
+  const open = e => {
+    if (e.target.closest('a')) return;
+    const c = e.target.closest('[data-det]');
+    if (c && DET[c.dataset.det]) openPop(DET[c.dataset.det].title, DET[c.dataset.det].html);
+  };
+  el.addEventListener('click', open);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
+});
+
 // ---------- 載入 ----------
 async function load() {
   $('kpis').innerHTML = '<div class="empty" style="grid-column:1/-1">資料載入中…</div>';
@@ -365,6 +484,7 @@ async function load() {
       S[k] = el.value;
     });
     render();
+    if (!PARK) Api.parking().then(p => { PARK = p; render(); }).catch(() => { PARK = []; render(); });
   } catch (err) {
     $('stamp').textContent = `讀取失敗：${err.message}`;
     $('kpis').innerHTML = `<div class="empty" style="grid-column:1/-1">資料讀取失敗：${esc(err.message)}</div>`;
@@ -403,6 +523,7 @@ $('refresh').onclick = async () => {
   try {
     await fetch(`${API}/refresh_data`, { method: 'POST' });
     Api.reset();
+    PARK = null;
     await load();
   } finally {
     b.classList.remove('spin'); b.disabled = false;

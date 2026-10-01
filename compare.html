@@ -26,6 +26,7 @@
     <button data-tab="region" class="on">區域比較</button>
     <button data-tab="project">建案比較</button>
     <button data-tab="pace">去化速度排行</button>
+    <button data-tab="park">車位價格</button>
   </div>
 </header>
 
@@ -89,6 +90,32 @@
       <span class="meta" id="pcCount"></span>
     </div>
     <div class="card"><div class="tbl-scroll"><table class="rank-t" id="paceTable"></table></div></div>
+  </section>
+
+  <!-- 車位價格 -->
+  <section class="tab" id="tab-park" hidden>
+    <div class="sec-h"><h2>車位價格趨勢</h2><span>一車位一筆（政府車位明細）· 已排除解約、特殊交易、價格 0、廠辦／辦公</span></div>
+    <div class="ctl">
+      <div class="chips-pick" id="parkPick"></div>
+    </div>
+    <div class="ctl">
+      <div class="seg" id="parkType">
+        <button data-v="坡道平面" class="on">坡道平面</button>
+        <button data-v="機械">機械</button>
+        <button data-v="一樓平面">一樓平面</button>
+        <button data-v="子母／大車位">子母／大車位</button>
+      </div>
+      <div class="seg" id="parkStep">
+        <button data-v="q" class="on">每季</button>
+        <button data-v="h">每半年</button>
+      </div>
+      <div class="sp"></div>
+      <span class="meta">區域行情受「當期在賣哪些建案」影響大，判讀時請搭配下方建案表</span>
+    </div>
+    <div class="card"><div class="tbl-scroll"><table class="cmp" id="parkTable"></table></div></div>
+    <div class="card panel"><div class="ph"><h3>車位價格中位數趨勢</h3><small>萬元/位 · 樣本少於 5 位的期間不畫</small></div><div class="chart" id="parkTrend"></div><div class="lgd" id="parkLegend"></div></div>
+    <div class="sec-h"><h2>建案車位價格</h2><span id="parkProjNote"></span></div>
+    <div class="card"><div class="tbl-scroll"><table class="rank-t" id="parkProj"></table></div></div>
   </section>
 </div>
 
