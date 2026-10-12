@@ -100,7 +100,11 @@ function fmtStamp(latest) {
   const t = at
     ? new Date(at).toLocaleString('zh-TW', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '';
-  if (STATIC) return `資料更新 ${t}`;
+  if (STATIC) {
+    const days = at ? Math.floor((Date.now() - new Date(at).getTime()) / 864e5) : 0;
+    const age = days <= 0 ? '今天' : `${days} 天前`;
+    return `資料更新 ${t}（${age}${days >= 20 ? '，資料可能偏舊' : ''}）`;
+  }
   return `${String(latest.source || '').replace(' (Google Sheets)', '')} · 更新 ${t}`.trim();
 }
 
