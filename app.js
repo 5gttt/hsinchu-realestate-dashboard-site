@@ -143,10 +143,10 @@ function delta(cur, prev) {
 function spark(vals) {
   if (vals.length < 2) return '';
   const W = 84, H = 24, mn = Math.min(...vals), mx = Math.max(...vals), sy = v => H - 2 - (v - mn) / ((mx - mn) || 1) * (H - 4);
-  return `<svg width="${W}" height="${H}"><path d="${vals.map((v, i) => `${i ? 'L' : 'M'}${i / (vals.length - 1) * W},${sy(v)}`).join('')}" fill="none" stroke="var(--ink3)" stroke-width="1.3"/></svg>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${vals.map((v, i) => `${i ? 'L' : 'M'}${i / (vals.length - 1) * W},${sy(v)}`).join('')}" fill="none" stroke="var(--ink3)" stroke-width="1.3"/></svg>`;
 }
 
-const projLink = (region, name) => `<a href="${googleSearchUrl(region, name)}" target="_blank" rel="noopener noreferrer" title="Google 搜尋此建案">${esc(name)}</a>`;
+const projLink = (region, name) => `<a href="${googleSearchUrl(region, name)}" target="_blank" rel="noopener noreferrer" title="外部連結：在新分頁以 Google 搜尋此建案">${esc(name)}</a>`;
 
 // ---------- 主畫面 ----------
 function render() {
@@ -306,6 +306,7 @@ function render() {
 
   renderTable();
   renderQA();
+  if (window.onHomeRender) window.onHomeRender({ cur, byM, rs, ps, rmTop, tr });   // 新版首頁（index-v2）用來更新摺疊區塊摘要
 }
 
 // ---------- 明細表 ----------
@@ -367,7 +368,7 @@ function renderQA() {
   }
   if (BROKEN.length) {
     h += `<h4>建案名稱缺字（${BROKEN.length}）</h4><p class="note">政府原始資料的罕見字被轉成「?」。請到 Google Sheets 的 Name_Fix 分頁填入正確名稱，下次資料更新會自動改正。</p>`;
-    h += BROKEN.map(b => `<div class="qi"><b>${esc(b.pj)}</b><span>${esc(b.r)} · ${b.n} 筆 · <a href="${googleSearchUrl(b.r, b.addr + ' 建案')}" target="_blank" rel="noopener noreferrer">${esc(b.addr)}</a></span></div>`).join('');
+    h += BROKEN.map(b => `<div class="qi"><b>${esc(b.pj)}</b><span>${esc(b.r)} · ${b.n} 筆 · <a href="${googleSearchUrl(b.r, b.addr + ' 建案')}" target="_blank" rel="noopener noreferrer" title="外部連結：在新分頁以 Google 搜尋">${esc(b.addr)}</a></span></div>`).join('');
   }
   $('qaList').innerHTML = h || '<p class="note">目前篩選條件下沒有異常。</p>';
 }

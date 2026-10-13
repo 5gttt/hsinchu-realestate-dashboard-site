@@ -1,0 +1,33 @@
+/* 建案頁 v2：沿用首頁的細線、大留白風格 */
+.v2 .wrap { padding-top: 56px; }
+.v2 .wrap > section + section { margin-top: 88px; }
+.v2 .sec-h { margin-bottom: 24px; align-items: baseline; }
+.v2 .sec-h h2, .v2 .det-h h2 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.v2 .sec-h > span, .v2 .det-h p { color: var(--ink3); font-size: 13px; }
+.v2 .card { border: 1px solid var(--line); border-radius: 12px; box-shadow: none; background: #fff; }
+.v2 .tm { border: 0; border-radius: 12px; }
+.v2 .tile > div { border-radius: 6px; }
+.v2 .note { margin-top: 12px; color: var(--ink3); font-size: 12.5px; }
+.v2 .det { gap: 24px; }
+.v2 .stat { border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 28px 0 0; }
+.v2 .stat .big { font-size: 56px; font-weight: 600; letter-spacing: -.035em; }
+.v2 .det > .card:not(.stat) { border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 28px 0 0; }
+.v2 .prog i { border-radius: 2px; }
+.v2 .prog i.s { background: var(--ink); }
+.v2 .ms b, .v2 .chip, .v2 .ac-form input { font-family: var(--sans); }
+.v2 .fl-sum { background: none; border: 0; padding: 0; }
+.v2 .gridwrap { border-color: var(--line); border-radius: 12px; }
+.v2 .ac-form { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.v2 #acForm + #acOut, .v2 section:last-child .card { border-radius: 12px; }
+.v2 .ac th { font-weight: 400; }
+.v2 .ac tbody tr:hover { background: var(--hover); }
+.v2 .search { background: var(--hover); border-color: transparent; border-radius: 8px; height: 32px; }
+@media (max-width: 760px) {
+  .v2 .wrap { padding: 36px 20px 80px; }
+  .v2 .wrap > section + section { margin-top: 64px; }
+  .v2 .stat .big { font-size: 44px; }
+  .v2 .sec-h { flex-wrap: wrap; gap: 6px 12px; }
+}
+/* 建案明細內的子區塊（樓層單價、車位價格）拉開間距 */
+.v2 #detail .sec-h { margin-top: 72px; }
+.v2 #detail .det-h + .det, .v2 #detail .det { margin-top: 8px; }

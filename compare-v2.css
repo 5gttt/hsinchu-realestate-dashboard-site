@@ -1,0 +1,24 @@
+/* 比較頁 v2 */
+.v2 .wrap { padding-top: 40px; }
+.v2 .tab { gap: 24px; }
+.v2 .tabs { gap: 4px; }
+.v2 .tabs button { border-radius: 8px; height: 32px; font-size: 14px; }
+.v2 .tabs button.on { background: var(--ink); font-weight: 400; }
+.v2 .sec-h { margin-top: 32px; }
+.v2 .sec-h h2, .v2 .ph h3 { font-weight: 600; letter-spacing: -.02em; }
+.v2 .sec-h h2 { font-size: 24px; }
+.v2 .card { border: 1px solid var(--line); border-radius: 12px; box-shadow: none; background: #fff; }
+.v2 .panel { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 24px 0 0; }
+.v2 .pk { height: 32px; border-radius: 16px; transition: border-color .15s, background .15s; }
+.v2 .pk:hover { background: var(--hover); }
+.v2 .cmp td, .v2 .rank-t td, .v2 .rank-t td { font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.v2 .cmp thead th { font-weight: 600; }
+.v2 .cmp tbody tr:hover td, .v2 .rank-t tr:hover td { background: var(--hover); }
+.v2 .grid2 { gap: 48px 40px; }
+.v2 .explain { border-style: solid; border-color: var(--line); background: none; }
+.v2 .pbar span i { background: var(--ink); }
+.v2 .lgd, .v2 .skey { color: var(--ink3); }
+@media (max-width: 760px) {
+  .v2 .wrap { padding: 28px 20px 80px; }
+  .v2 .grid2 { gap: 40px; }
+}
